@@ -27,7 +27,7 @@ flowchart TB
   hooks[Per-response hooks<br/>concept extraction · mycelial updates]:::proc
   dispatch[Dispatch wrapper<br/>safe minion spawning]:::proc
 
-  graph[(Mycelial knowledge graph<br/>SQLite)]:::store
+  kgraph[(Mycelial knowledge graph<br/>SQLite)]:::store
   vector[(Vector index<br/>Voyage embeddings)]:::store
 
   retrieval[Hybrid retrieval<br/>sparse + dense + graph]:::proc
@@ -40,19 +40,19 @@ flowchart TB
 
   user --> hooks
   user --> dispatch
-  hooks --> graph
+  hooks --> kgraph
   hooks --> vector
   retrieval --> user
-  graph --> retrieval
+  kgraph --> retrieval
   vector --> retrieval
   dispatch --> minions
   minions --> council
   council --> user
 
-  graph -.gated.- daydream
-  graph -.scheduled.- dream
-  daydream --> graph
-  dream --> graph
+  kgraph -.gated.- daydream
+  kgraph -.scheduled.- dream
+  daydream --> kgraph
+  dream --> kgraph
 ```
 
 ---

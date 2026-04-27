@@ -13,8 +13,8 @@ flowchart TB
   classDef store fill:#EFE8DA,stroke:#8E8576
   classDef cycle fill:#F4EFE5,stroke:#A03B2E,stroke-dasharray: 4 3
 
-  in[Input · session turn]:::io
-  out[Output · response]:::io
+  entry[Input · session turn]:::io
+  resp[Output · response]:::io
 
   startup[Session start<br/>identity injection · cognitive snapshot]:::proc
   recall[Auto-recall<br/>hybrid retrieval pre-fires]:::proc
@@ -22,31 +22,31 @@ flowchart TB
   hooks[Per-response hooks<br/>concept extraction · graph update]:::proc
   dispatch[Dispatch wrapper<br/>sandboxed minion spawning]:::proc
 
-  graph[(Mycelial knowledge graph<br/>nodes · edges · activations · decay log)]:::store
+  kgraph[(Mycelial knowledge graph<br/>nodes · edges · activations · decay log)]:::store
   vector[(Vector index<br/>chunks · embeddings · graph links)]:::store
   identity[(Identity layer<br/>core · voice · values · morals)]:::store
 
   daydream[Daydream<br/>DMN analog]:::cycle
   dream[Sleep dream<br/>LLM consolidation]:::cycle
 
-  in --> startup
+  entry --> startup
   identity --> startup
   startup --> recall
-  graph --> recall
+  kgraph --> recall
   vector --> recall
   recall --> reason
-  reason --> out
+  reason --> resp
   reason --> hooks
   reason --> dispatch
-  hooks --> graph
+  hooks --> kgraph
   hooks --> vector
   dispatch --> reason
 
-  graph -.gated.- daydream
-  daydream --> graph
-  graph -.scheduled.- dream
+  kgraph -.gated.- daydream
+  daydream --> kgraph
+  kgraph -.scheduled.- dream
   vector -.scheduled.- dream
-  dream --> graph
+  dream --> kgraph
   dream --> vector
 ```
 
