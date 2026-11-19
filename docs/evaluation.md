@@ -1,6 +1,8 @@
 # Evaluation
 
-The discipline that keeps substrate changes honest. Pre-registered ship/kill criteria, blind A/B grading, production dogfood as the eval surface.
+The discipline that keeps changes to the agent honest. It has four parts: pre-registered ship/kill criteria, a named baseline every component must beat, real-question benchmarks for anything retrieval-shaped, and blind A/B grading with production use as the evaluation surface for behavior changes.
+
+What happens when a component fails the baseline is covered in [retirements.md](retirements.md).
 
 ---
 
@@ -8,7 +10,7 @@ The discipline that keeps substrate changes honest. Pre-registered ship/kill cri
 
 > **Set the threshold before you see the data. Don't move it.**
 
-A behavioral change to the substrate (new retrieval strategy, new persona, new hook) is shipped or killed based on a number that was committed to in writing *before* any data exists. The number isn't a goal; it's a contract.
+A behavioral change to the agent (new persona, new hook, new prompt-time context) is shipped or killed based on a number that was committed to in writing *before* any data exists. The number isn't a goal; it's a contract.
 
 If the data clears the threshold, ship default-on. If it doesn't, the change is killed. There is no "let me re-grade with a different rubric." The rubric was set; the answer is binding.
 
@@ -37,13 +39,13 @@ Before looking at *which side* won, compute Cohen's κ on grader agreement.
 
 | κ | Interpretation | Action |
 | --- | --- | --- |
-| ≥ 0.4 | Substantial agreement | Continue to effect-size analysis |
-| 0.2–0.4 | Fair agreement | Investigate rubric ambiguity |
-| < 0.2 | Slight / no agreement | Rubric is broken — re-grade is invalid |
+| ≥ 0.4 | Moderate or better (Landis & Koch) | Continue to effect-size analysis |
+| 0.2–0.4 | Fair | Investigate rubric ambiguity |
+| < 0.2 | Slight | Rubric is broken — re-grade is invalid |
 
 If κ is too low, the answer isn't "ship anyway" or "kill." The answer is **the rubric is unreliable** — you can't tell what the data says. Re-write the rubric, re-grade, or accept that the change can't be evaluated this way.
 
-This step matters because effect size means nothing if graders are noise. A 65% improvement under κ = 0.1 is consistent with the graders being random.
+This step matters because effect size means nothing if graders are noise. A 65% preference rate under κ = 0.1 is consistent with the graders being random.
 
 ---
 
@@ -101,6 +103,35 @@ A typical eval pass for a substrate change looks like:
 | **Decision** | one day | Ship default-on, calibrate-and-retest, or kill — per the locked criteria. |
 
 Total wall-clock from plan to decision: about two weeks. Per substrate change. Slower than "ship and watch," meaningfully cheaper than "ship a regression and fix it later."
+
+---
+
+## Every component names a baseline
+
+Pre-registration answers "did this change clear its bar?". It does not answer "should this component exist at all?". That needs a baseline: the simplest thing that could do the same job, measured on the same data.
+
+| Component type | Baseline it must beat |
+| --- | --- |
+| A retrieval channel | Dense retrieval alone, with a fair merge so the new channel's candidates actually reach ranking |
+| A reranker | The candidate order it is given, before reranking |
+| A predictive summary (e.g. "what is the agent focused on") | Raw frequency counts |
+| An automated monitor or triage loop | No automation, with a human checking on demand |
+| An autonomous research loop | Confirmation by someone outside the loop |
+
+A component that loses to its baseline is retired, even when it is elegant and the baseline is embarrassingly simple. Several were ([retirements.md](retirements.md)).
+
+---
+
+## Real-question benchmarks for retrieval
+
+Behavior changes are graded by people. Retrieval changes can be scored mechanically, as long as the questions are real:
+
+- **Real questions only.** Probes come from actual prompts with a known answering document. Synthetic queries written by the same model that indexed the corpus overstate recall.
+- **Score the full pipeline.** The benchmark runs through the same code path as the production hook, including candidate merging, policy adjustments and the fire gate. A component scored in isolation can look good and still lose in the pipeline.
+- **Include prompts that should not fire.** The fire threshold is calibrated against both sets, so improving recall cannot quietly turn into injecting noise into every turn.
+- **Include revision probes.** An old statement and its explicit revision: the revision must rank higher, and the old one must stay retrievable as history.
+- **Re-run before changing a constant.** Ranking constants carry their calibration table in a comment, and changing one without re-running the benchmark is treated as a bug.
+- **Watch for evaluation artifacts.** One early "no effect" result came from an eval that folded in only the top-k results, which hid the change it was meant to measure. A cross-model reviewer caught it. When a result says "no effect", check whether the eval could have seen an effect.
 
 ---
 

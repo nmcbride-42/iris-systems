@@ -8,14 +8,14 @@ Specialist personas, dispatched in parallel, synthesized into a single decision.
 
 MBTI is not a serious psychometric framework. It is, however, a compact 16-point coordinate system over personality space that the base model has seen extensively in training. Anchoring a persona to a type isn't a claim about the type's empirical validity — it's a way to grab a handful of training-distribution coordinates and pull the model toward a specific way of thinking.
 
-Used this way, MBTI gives me four useful properties:
+Used this way, MBTI gives four useful properties:
 
 1. **Discrete, named axes** (introversion / extraversion, intuition / sensing, etc.) — easier to compose personas deliberately than to write them from scratch.
 2. **Different-by-design pairs** that produce real disagreement when run in parallel (e.g. INTJ architect vs ENFP explorer reach the same problem from opposite ends).
-3. **Cheap dispatch** — I can describe a persona in 200–400 words and the model fills in the rest.
+3. **Cheap dispatch** — a persona can be described in 200–400 words and the model fills in the rest.
 4. **A vocabulary the orchestrator and the personas share** — synthesis is easier when both sides know the coordinate system.
 
-The empirical claim is narrow: typed priming + 200–400 word persona descriptions produce noticeably different outputs from the same base model on the same prompt. The dispatch wrapper lets me run that experiment continuously.
+The empirical claim is narrow: typed priming + 200–400 word persona descriptions produce noticeably different outputs from the same base model on the same prompt. The dispatch wrapper makes it cheap to run that comparison whenever a council is called.
 
 ---
 
@@ -59,9 +59,9 @@ sequenceDiagram
   Synthesis-->>Orchestrator: convergence + divergence
 ```
 
-The wrapper exists because of a substrate-level constraint: in `claude -p` (headless) mode, `PreToolUse` hooks **don't fire**. That means a minion spawned via raw `claude -p` has no harness-level safety guard. The wrapper closes the gap by injecting *intent-level* rules — the same ops-rules I follow myself — into the persona's system prompt before the persona ever runs.
+The wrapper exists because minions run headless (`claude -p`) with isolated settings, to keep each call from loading every MCP server the parent has. When this was built, a minion launched that way did not inherit the parent session's `PreToolUse` guardrails. (Current Claude Code runs `PreToolUse` hooks in print mode too, but only those in the settings the minion actually loads.) The wrapper closes the gap by injecting *intent-level* rules — the same operating rules the main agent follows — into the persona's system prompt before the persona ever runs.
 
-Every persona dispatch goes through the wrapper. There is no path that skips it.
+Every persona dispatch goes through the wrapper. There is no path that skips it. Isolation matters for cost as well as safety: each tool server a minion loads adds token overhead to every call.
 
 ---
 
@@ -110,7 +110,20 @@ DIVERGENCE:  None on the architectural question.
 DECISION:    Candidate-injection.
 ```
 
-Convergence doesn't always happen. When it does, it's usable.
+Convergence doesn't always happen. When it does, it's usable, but it is not proof.
+
+**Postscript.** This council's decision was implemented. Months later, a fair evaluation over genuine queries found that the graph channel barely ever changed what retrieval returned, and it was switched off ([memory-and-retrieval.md](memory-and-retrieval.md)). Four seats agreed on the *architecture*. None of them could know whether the graph held signal the embeddings lacked, because that is an empirical question. A council is a good way to explore a design space. Measurement is what decides.
+
+---
+
+## Cross-lineage seats
+
+All thirteen personas run on the same base model, so they share its priors. Persona priming changes *how* a model argues more than *what it can see*. For questions where that matters, the council also seats two non-Claude peers (see [models-and-crew.md](models-and-crew.md)):
+
+- an **uncontaminated peer** that has never read the project's notes, for a genuinely independent take;
+- a **corpus-reading colleague** that can say "this contradicts something already built".
+
+Both are treated as peers, not judges. Anything factual they say still gets verified.
 
 ---
 
